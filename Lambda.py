@@ -8,9 +8,9 @@ http://amzn.to/1LGWsLG
 """
 
 from __future__ import print_function
-from operator import itemgetter
 import requests
 import json
+import apikey
 
 
 # --------------- Helpers that build all of the responses ----------------------
@@ -75,38 +75,23 @@ def handle_session_end_request():
         card_title, speech_output, None, should_end_session))
 
 
-def create_favorite_color_attributes(favorite_color):
-    return {"favoriteColor": favorite_color}
+def create_movie_list_attribute(movie_list):
+    return {'movieList': movie_list, 'index': 0}
 
 
-def set_color_in_session(intent, session):
-    """ Sets the color in the session and prepares the speech to reply to the
-    user.
-    """
-
-    card_title = intent['name']
-    session_attributes = {}
-    should_end_session = False
-
-    if 'Color' in intent['slots']:
-        favorite_color = intent['slots']['Color']['value']
-        session_attributes = create_favorite_color_attributes(favorite_color)
-        speech_output = "I now know your favorite color is " + \
-                        favorite_color + \
-                        ". You can ask me your favorite color by saying, " \
-                        "what's my favorite color?"
-        reprompt_text = "You can ask me your favorite color by saying, " \
-                        "what's my favorite color?"
-    else:
-        speech_output = "I'm not sure what your favorite color is. " \
-                        "Please try again."
-        reprompt_text = "I'm not sure what your favorite color is. " \
-                        "You can tell me your favorite color by saying, " \
-                        "my favorite color is red."
-    return build_response(session_attributes, build_speechlet_response(
-        card_title, speech_output, reprompt_text, should_end_session))
+def next_movie_item(session_attributes):
+    if 'index' in session_attributes:
+        index = session_attributes['index']
+        session_attributes['index'] = index + 1
+    return session_attributes
 
 
+def previous_movie_item(session_attributes):
+    if 'index' in session_attributes:
+        index = session_attributes['index']
+        if index > 0:
+            session_attributes['index'] = index - 1
+    return session_attributes
 
 
 def get_previous_movie(intent, session):
@@ -114,13 +99,19 @@ def get_previous_movie(intent, session):
     reprompt_text = None
 
     if session.get('attributes', {}) and "movieList" in session.get('attributes', {}):
-        if(session['attributes']['index'][0] > 0):
+        if session['attributes']['index'][0] > 0:
             movie = session['attributes']['movieList'][session['attributes']['index'][0]][0]
+            session_attributes = previous_movie_item(session['attributes'])
             speech_output = "The last movie was" + movie
-            should_session_end = False
+            should_end_session = False
         else:
             speech_output = "There are no previous movies"
             should_end_session = True
+    else:
+        speech_output = "You have not made a query. Would you like to make one?"
+        should_end_session = False
+    return build_response(session_attributes, build_speechlet_response(
+        intent['name'], speech_output, reprompt_text, should_end_session))
 
 
 def get_next_movie(intent, session):
@@ -128,47 +119,50 @@ def get_next_movie(intent, session):
     reprompt_text = None
 
     if session.get('attributes', {}) and "movieList" in session.get('attributes', {}):
-        if(session['attributes']['index'][0] < (len(session['attributes']['movielist']) -1)):
+        if session['attributes']['index'][0] < (len(session['attributes']['movielist']) - 1):
             movie = session['attributes']['movieList'][session['attributes']['index'][0]][0]
+            session_attributes = next_movie_item(session['attributes'])
             speech_output = "Another movie is" + movie
-            should_session_end = False
+            should_end_session = False
         else:
-            speech_output = "There are no more movies starring this indiviual"
+            speech_output = "There are no more movies starring this individual"
             should_end_session = True
+    else:
+        speech_output = "You have not made a query. Would you like to make one?"
+        should_end_session = False
+    return build_response(session_attributes, build_speechlet_response(
+        intent['name'], speech_output, reprompt_text, should_end_session))
 
 
 def get_movie_session(intent, session):
     session_attributes = {}
     reprompt_text = None
 
-    
-
-    r = requests.get("")
+    actor = intent['slots']['actor']['value']
+    r = requests.get("http://api.tmdb.org/3/search/person?api_key={}&query={}".format(apikey.api_key, actor))
 
     data = json.loads(r.content)
 
     results = data['results'][0]
-
-    actor_name = results['name']
 
     movies_list = []
 
     for description in results['known_for']:
         title = description['title']
         rating = description['vote_average']
-        tuple = (title,rating)
+        tuple = (title, rating)
         movies_list.append(tuple)
 
     movies_list = sorted(movies_list, key=lambda x: x[1])[::-1]
-    
+    session_attributes = create_movie_list_attribute(movies_list)
 
-    if session.get('attributes', {}) and "movieList" in session.get('attributes', {}):
-        movie = session['attributes']['movieList'][0][0]
-        actor = intent['slots']['actor']['value']
-        speech_output = "The" + actor + "acts in" + movie
-        should_session_end = False
+    if len(movies_list) > 0:
+        movie = movies_list[0][0]
+        speech_output = "The {} stars in {}".format(actor, movie)
+        session_attributes = next_movie_item(session_attributes)
+        should_end_session = False
     else:
-        speech_output = "No movies were found starring" + actor \
+        speech_output = "No movies were found starring" + actor
         should_end_session = True
 
     # Setting reprompt_text to None signifies that we do not want to reprompt
