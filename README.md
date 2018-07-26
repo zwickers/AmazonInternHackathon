@@ -1,4 +1,4 @@
-# AmazonInternHackathon
+# Amazon Intern Hackathon Project
 The SMASH team's project for Amazon's intern hackathon.
 
 # Problem statement: 
