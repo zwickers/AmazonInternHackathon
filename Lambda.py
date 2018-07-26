@@ -113,7 +113,7 @@ def get_movie_session(intent, session):
 
     if(intent == ActorQuery):
 
-        r = requests.get("http://api.tmdb.org/3/search/person?api_key=c6f047de2dfed714553bb6a8b43ec41e&query=tom%20hanks")
+        r = requests.get("")
 
         data = json.loads(r.content)
 
@@ -179,11 +179,11 @@ def on_intent(intent_request, session):
     intent_name = intent_request['intent']['name']
 
     # Dispatch to your skill's intent handlers
-    if intent_name == "MyColorIsIntent":
+    if intent_name == "ActorQueryIntent":
         return set_color_in_session(intent, session)
-    elif intent_name == "WhatsMyColorIntent":
+    elif intent_name == "NextIntent":
         return get_color_from_session(intent, session)
-    elif intent_name == "AMAZON.HelpIntent":
+    elif intent_name == "PreviousIntent":
         return get_welcome_response()
     elif intent_name == "AMAZON.CancelIntent" or intent_name == "AMAZON.StopIntent":
         return handle_session_end_request()
