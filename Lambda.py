@@ -9,6 +9,8 @@ http://amzn.to/1LGWsLG
 
 from __future__ import print_function
 from operator import itemgetter
+import requests
+import json
 
 
 # --------------- Helpers that build all of the responses ----------------------
@@ -105,9 +107,30 @@ def set_color_in_session(intent, session):
         card_title, speech_output, reprompt_text, should_end_session))
 
 
-def get_color_from_session(intent, session):
+def get_movie_session(intent, session):
     session_attributes = {}
     reprompt_text = None
+
+    if(intent == ActorQuery):
+
+        r = requests.get("http://api.tmdb.org/3/search/person?api_key=c6f047de2dfed714553bb6a8b43ec41e&query=tom%20hanks")
+
+        data = json.loads(r.content)
+
+        results = data['results'][0]
+
+        actor_name = results['name']
+
+        movies_list = []
+
+        for description in results['known_for']:
+            title = description['title']
+            rating = description['vote_average']
+            tuple = (title,rating)
+            movies_list.append(tuple)
+
+        movies_list = sorted(movies_list, key=lambda x: x[1])[::-1]
+    
 
     if session.get('attributes', {}) and "favoriteColor" in session.get('attributes', {}):
         favorite_color = session['attributes']['favoriteColor']
