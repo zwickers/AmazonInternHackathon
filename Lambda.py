@@ -110,33 +110,56 @@ def set_color_in_session(intent, session):
 
 
 def get_previous_movie(intent, session):
+    session_attributes = {}
+    reprompt_text = None
+
+    if session.get('attributes', {}) and "movieList" in session.get('attributes', {}):
+        if(session['attributes']['index'][0] > 0):
+            movie = session['attributes']['movieList'][session['attributes']['index'][0]][0]
+            speech_output = "The last movie was" + movie
+            should_session_end = False
+        else:
+            speech_output = "There are no previous movies"
+            should_end_session = True
 
 
+def get_next_movie(intent, session):
+    session_attributes = {}
+    reprompt_text = None
+
+    if session.get('attributes', {}) and "movieList" in session.get('attributes', {}):
+        if(session['attributes']['index'][0] < (len(session['attributes']['movielist']) -1)):
+            movie = session['attributes']['movieList'][session['attributes']['index'][0]][0]
+            speech_output = "Another movie is" + movie
+            should_session_end = False
+        else:
+            speech_output = "There are no more movies starring this indiviual"
+            should_end_session = True
 
 
 def get_movie_session(intent, session):
     session_attributes = {}
     reprompt_text = None
 
-    if(intent == ActorQuery):
+    
 
-        r = requests.get("")
+    r = requests.get("")
 
-        data = json.loads(r.content)
+    data = json.loads(r.content)
 
-        results = data['results'][0]
+    results = data['results'][0]
 
-        actor_name = results['name']
+    actor_name = results['name']
 
-        movies_list = []
+    movies_list = []
 
-        for description in results['known_for']:
-            title = description['title']
-            rating = description['vote_average']
-            tuple = (title,rating)
-            movies_list.append(tuple)
+    for description in results['known_for']:
+        title = description['title']
+        rating = description['vote_average']
+        tuple = (title,rating)
+        movies_list.append(tuple)
 
-        movies_list = sorted(movies_list, key=lambda x: x[1])[::-1]
+    movies_list = sorted(movies_list, key=lambda x: x[1])[::-1]
     
 
     if session.get('attributes', {}) and "movieList" in session.get('attributes', {}):
@@ -186,11 +209,11 @@ def on_intent(intent_request, session):
 
     # Dispatch to your skill's intent handlers
     if intent_name == "ActorQueryIntent":
-        return set_color_in_session(intent, session)
+        return get_movie_session(intent, session)
     elif intent_name == "NextIntent":
-        return get_color_from_session(intent, session)
+        return get_next_movie(intent, session)
     elif intent_name == "PreviousIntent":
-        return get_welcome_response()
+        return get_previous_movie(intent, session)
     elif intent_name == "AMAZON.CancelIntent" or intent_name == "AMAZON.StopIntent":
         return handle_session_end_request()
     else:
