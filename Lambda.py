@@ -107,6 +107,13 @@ def set_color_in_session(intent, session):
         card_title, speech_output, reprompt_text, should_end_session))
 
 
+
+
+def get_previous_movie(intent, session):
+
+
+
+
 def get_movie_session(intent, session):
     session_attributes = {}
     reprompt_text = None
@@ -132,15 +139,14 @@ def get_movie_session(intent, session):
         movies_list = sorted(movies_list, key=lambda x: x[1])[::-1]
     
 
-    if session.get('attributes', {}) and "favoriteColor" in session.get('attributes', {}):
-        favorite_color = session['attributes']['favoriteColor']
-        speech_output = "Your favorite color is " + favorite_color + \
-                        ". Goodbye."
-        should_end_session = True
+    if session.get('attributes', {}) and "movieList" in session.get('attributes', {}):
+        movie = session['attributes']['movieList'][0][0]
+        actor = intent['slots']['actor']['value']
+        speech_output = "The" + actor + "acts in" + movie
+        should_session_end = False
     else:
-        speech_output = "I'm not sure what your favorite color is. " \
-                        "You can say, my favorite color is red."
-        should_end_session = False
+        speech_output = "No movies were found starring" + actor \
+        should_end_session = True
 
     # Setting reprompt_text to None signifies that we do not want to reprompt
     # the user. If the user does not respond or says something that is not
